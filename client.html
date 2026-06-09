@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja-JP">
+  <head>
+    <meta charset="UTF-8">
+    <title>R2-DL</title>
+    <!--
+    <link rel="icon" href="favicon.ico">
+    <style></style>
+    <script></script>
+    -->
+    <style>
+      table, th, td {
+        border-collapse: collapse
+      }
+      th {
+        padding: 8px;
+        border-bottom: solid 3px #0000ff;
+      }
+      td {
+        padding: 0.5em 1em;
+        border-bottom: solid 1px #0000ff;
+      }
+      .tagetDate {
+        text-align: left;
+      }
+      .facilitiyName {
+        text-align: center;
+      }
+      .wrapper {
+        width: fit-content;
+        margin: 0 auto;
+        /* padding: 32px; */
+      }
+      .hidden {
+        display: none;
+      }
+      .stopBtn {
+        text-align: right;
+        padding: 1em 0;
+      }
+      .btn-label {
+        display: inline-block;
+        /* padding: 8px 16px; */
+        padding: 2px 8px;
+        background-color: #efefef;
+        color: #000;
+        border: 1px solid #767676;
+        border-radius: 4px;
+        font-family: sans-serif;
+        font-size: 14px;
+        cursor: pointer;
+        text-align: center;
+        user-select: none;
+      }
+      /* ホバー時の見た目（ブラウザのデフォルトボタンに準拠） */
+      .btn-label:hover {
+        background-color: #e5e5e5;
+      }
+      /* クリック時（アクティブ時）に少し右下にずらす表現 */
+      .btn-label:active {
+        background-color: #d4d4d4;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- input要素は隠し、label要素をボタンとして機能させる -->
+    <!--
+    <div>
+      <label for="name">ファイル名：</label>
+      <input type="text" id="name" value="meeting-room-reserve.json">
+      <button onclick="download()">ダウンロード</button>
+    </div>
+     -->
+    <div id="message" class="wrapper">
+
+    </div>
+    <!--
+    <input type="file">
+    <button>ファイルを選択</button>
+     -->
+    <script>
+      const r2FileName = "meeting-room-reserve.json";
+      let facilitiyId = null;  // 初期値：名称のidを特定しない（すべての施設名を表示する）
+      let facilitiyClass = ""; // 初期値：名称の列を隠さない（class="hidden"を付加しない）
+      let isAutoReload = true;
+      let intervalMillisecond = 10 * 60 * 1000; // 初期値：読み込み間隔10分（600,000ミリ秒）
+      intervalMillisecond = 2000; // 2秒：デデバッグ用
+      const facilities =
+        [
+          {id:  2, groupId: 1, name: "５Ｆ役員会議室"},
+          {id:  3, groupId: 1, name: "６Ｆ会議室（２）"},
+          {id:  4, groupId: 1, name: "６Ｆ会議室（３）"},
+          {id:  5, groupId: 1, name: "６Ｆ会議室（１）"},
+          {id:  6, groupId: 1, name: "８Ｆラウンジ"},
+          {id:  7, groupId: 1, name: "８Ｆ会議室（Ａ）"},
+          {id:  8, groupId: 1, name: "８Ｆ会議室（Ｂ）"},
+          {id:  9, groupId: 1, name: "８Ｆ会議室（Ｃ）"},
+          {id: 25, groupId: 1, name: "５Ｆ会議室"},
+          {id: 34, groupId: 1, name: "６Ｆ Ｗｅｂ会議室"},
+          {id: 41, groupId: 1, name: "モニター①"},
+          {id: 42, groupId: 1, name: "モニター②"},
+          {id: 14, groupId: 2, name: "カローラツーリング（総務部）"},
+          {id: 16, groupId: 2, name: "プリウスPHV②（本社）"},
+          {id: 19, groupId: 2, name: "会長車"},
+          {id: 27, groupId: 2, name: "プリウスＰＨＶ①（本社）"},
+          {id: 28, groupId: 2, name: "カローラフィールダー（本社）"},
+          {id: 36, groupId: 2, name: "ハイゼット（立駐）"},
+          {id: 38, groupId: 2, name: "プロボックス①（本社）"},
+          {id: 39, groupId: 2, name: "プロボックス②（本社）"},
+          {id: 40, groupId: 2, name: "ミニキャブEV（本社）"},
+          {id: 20, groupId: 3, name: "ビデオカメラ"},
+          {id: 21, groupId: 3, name: "プロジェクター"},
+          {id: 22, groupId: 3, name: "ｉＰａｄ"},
+          {id: 26, groupId: 3, name: "酒酔い体験ゴーグル"},
+          {id: 29, groupId: 3, name: "Ｗｅｂ会議用セット"},
+          {id: 43, groupId: 3, name: "スマートアバター"},
+        ];
+      window.onload = init();
+      function init() {
+        getParam();
+        loopTask();
+      }
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+      async function loopTask() {
+        while(isAutoReload) {
+          download();
+          await sleep(intervalMillisecond);
+        }
+        alert("自動再読込を停止しました");
+      }
+      function getParam() {
+        // Ex) file:///C:/Dev/www/cloudflare/r2-dl-json.html?id=1
+        const queryString = window.location.search;
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("id")) {
+          const id = parseInt(params.get("id"));
+          facilitiyId = parseInt(params.get("id"));
+          const hasId = facilities.some(facilitiy => facilitiy.id === facilitiyId);
+          if (hasId) {
+            facilitiyId = id;
+            facilitiyClass = 'class="hidden"';
+          }
+        }
+        if (params.has("interval")) {
+          const intervalMinute = parseInt(params.get("id"));
+          // if (!Number.isNaN(intervalMinute) && intervalMinute >= 1) {
+          if (intervalMinute >= 1) {
+            // intervalMillisecond = intervalMinut * 60 * 1000;
+            intervalMillisecond = intervalMinute;
+          }
+        }
+      }
+      async function download() {
+        // const name = document.getElementById("name").value;
+        // alert(name);
+        // const res = await fetch(`https://sample-api.ohtota.workers.dev/file/${name}`);
+        const res = await fetch(`https://sample-api.ohtota.workers.dev/file/${r2FileName}`);
+        if (res.ok) {
+          const r2data = await res.json();
+          const target = new Date(r2data.Target); 
+          const reserves = r2data.PostReserves;
+          formatDate(target)
+          let tHead = `<h3 class="tagetDate">${formatDate(target)}</h3>`;
+          if (facilitiyId !== null) {
+            tHead += `<h1 class="facilitiyName">${getfacilitiyName(facilitiyId)}</h1>`;
+          }
+          tHead += `<table><tr><th ${facilitiyClass}">名称</th><th>時間</th><th>部署名</th><th>予約者</th><th>予約内容</th></tr>`;
+          let tBody = "";
+          for (var reserve of reserves) {
+            if (facilitiyId !== null) {
+              if (facilitiyId !== reserve.FacilitiesId) {
+                continue;
+              } 
+            }
+            reserve.ReserveStartTime = new Date(reserve.ReserveStartTime);
+            reserve.ReserveEndTime = new Date(reserve.ReserveEndTime);
+            tBody +=
+              `<tr>` +
+              `<td ${facilitiyClass}>${getfacilitiyName(reserve.FacilitiesId)}</td>` +
+              `<td>${formatTime(reserve.ReserveStartTime)} ～` +
+              `${formatTime(reserve.ReserveEndTime)}</td>` +
+              `<td>${reserve.ReserveSection}</td>` +
+              `<td>${reserve.ReserveCharge}</td>` +
+              `<td>${reserve.ReserveDetail}</td>` +
+              `</tr>`;
+          }
+          tBody += `</table>` 
+            + `<div class="stopBtn"><button onclick="stopAutoReload()">自動再読込停止</button></div>`
+            + `<select id="roomSelector" onchange="chgRoom()">`
+            + `<Option value="" selected>会議室を選択。。。</Option>` 
+            + `<Option value="25">５Ｆ会議室</Option>`
+            + `<Option value= "2">５Ｆ役員会議室</Option>`
+            + `<Option value= "5">６Ｆ会議室（１）</Option>`
+            + `<Option value= "3">６Ｆ会議室（２）</Option>`
+            + `<Option value= "4">６Ｆ会議室（３）</Option>`
+            + `<Option value="34">６Ｆ Ｗｅｂ会議室"</Option>`
+            + `<Option value= "6">８Ｆラウンジ</Option>`
+            + `<Option value= "7">８Ｆ会議室（Ａ）</Option>`
+            + `<Option value= "8">８Ｆ会議室（Ｂ）</Option>`
+            + `<Option value= "9">８Ｆ会議室（Ｃ）</Option>`
+            + `</select>`;
+          const display = document.getElementById("message");
+          display.innerHTML = tHead + tBody;
+          // console.log(tHead + tBody);
+        } else {
+          const status = res.status;
+          const text = await res.text();
+          alert(`Status Code: ${status}\nMessage: ${text}`);
+        }
+      }
+      function getfacilitiyName(id) {
+        for (var facilitiy of facilities) {
+          if (facilitiy.id === id) {
+            return facilitiy.name;
+          }
+        }
+        return "";
+      }
+      function stopAutoReload() {
+        isAutoReload = false;
+      }
+      function formatDate(dt) {
+        const days = ['（日）', '（月）', '（火）', '（水）', '（木）', '（金）', '（土）'];
+        const yy = dt.getFullYear();
+        const mm = dt.getMonth() + 1;
+        const dd = dt.getDate();
+        const day = days[dt.getDay()];
+        return `${yy}年${mm}月${dd}日${day}`;
+      }
+      function formatTime(dt) {
+        const hh = ('00' + dt.getHours()).slice(-2);
+        const mm = ('00' + dt.getMinutes()).slice(-2);
+        return `${hh}:${mm}`;
+      }
+    </script>  
+  </body>
+</html>
+      
