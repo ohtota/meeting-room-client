@@ -186,21 +186,7 @@
               `<td>${reserve.ReserveDetail}</td>` +
               `</tr>`;
           }
-          tBody += `</table>` 
-            + `<div class="stopBtn"><button onclick="stopAutoReload()">自動再読込停止</button></div>`
-            + `<select id="roomSelector" onchange="chgRoom()">`
-            + `<Option value="" selected>会議室を選択。。。</Option>` 
-            + `<Option value="25">５Ｆ会議室</Option>`
-            + `<Option value= "2">５Ｆ役員会議室</Option>`
-            + `<Option value= "5">６Ｆ会議室（１）</Option>`
-            + `<Option value= "3">６Ｆ会議室（２）</Option>`
-            + `<Option value= "4">６Ｆ会議室（３）</Option>`
-            + `<Option value="34">６Ｆ Ｗｅｂ会議室"</Option>`
-            + `<Option value= "6">８Ｆラウンジ</Option>`
-            + `<Option value= "7">８Ｆ会議室（Ａ）</Option>`
-            + `<Option value= "8">８Ｆ会議室（Ｂ）</Option>`
-            + `<Option value= "9">８Ｆ会議室（Ｃ）</Option>`
-            + `</select>`;
+          tBody += `</table><div class="stopBtn"><button onclick="stopAutoReload()">自動再読込停止</button></div>`;
           const display = document.getElementById("message");
           display.innerHTML = tHead + tBody;
           // console.log(tHead + tBody);
