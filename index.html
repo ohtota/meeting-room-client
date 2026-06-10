@@ -10,10 +10,60 @@
     <script></script>
     -->
     <style>
+      /* ==========================================
+         1. PC用の設定（元々のスタイルをベースに維持）
+         ========================================== */
       .wrapper {
         width: fit-content;
         margin: 0 auto;
         /* padding: 32px; */
+      }
+
+      /* PC時のリンクの余白を少しだけ確保（押しやすさのため） */
+      p {
+        margin: 1em 0;
+      }
+      a {
+        text-decoration: none;
+        color: #0066cc;
+      }
+
+
+      /* ==========================================
+         2. スマホ用の設定（画面幅が768px以下のとき）
+         ========================================== */
+      @media screen and (max-width: 768px) {
+        body {
+          font-size: 18px; /* 全体のベース文字サイズを大きく */
+          font-family: sans-serif;
+          margin: 0;
+          padding: 16px;   /* 画面の端に少しだけ余白を作る */
+        }
+
+        .wrapper {
+          width: 100%; /* スマホの時は fit-content を解除して横いっぱいに広げる */
+        }
+
+        /* h3タグを画面横いっぱいに大きく */
+        h3 {
+          font-size: 1.4rem;  /* 文字を大きく */
+          text-align: center; /* 中央寄せ */
+          padding: 12px 0;    /* 上下に余白 */
+          margin-top: 10px;
+          white-space: nowrap; /* 1行で横いっぱいに表示（改行させない） */
+          background-color: #f5f5f5; /* 横幅いっぱいに広がっているのが分かる背景色（不要なら消してください） */
+        }
+
+        /* リンク（会議室一覧）もスマホでタップしやすいように大きく */
+        p {
+          font-size: 1.2rem;
+          margin: 20px 0;
+          text-align: center;
+        }
+        a {
+          display: inline-block;
+          padding: 10px 20px; /* ボタンのようにタップしやすくする */
+        }
       }
     </style>
   </head>
