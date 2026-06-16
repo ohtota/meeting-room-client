@@ -2,7 +2,7 @@
 <html lang="ja-JP">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=360,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>会議室予約状況</title>
     <!--
     <link rel="icon" href="favicon.ico">
@@ -35,7 +35,7 @@
       .hidden {
         display: none;
       }
-      .stopBtn {
+      .message-tail {
         text-align: right;
         padding: 1em 0;
       }
@@ -72,8 +72,14 @@
       <button onclick="download()">ダウンロード</button>
     </div>
      -->
-    <div id="message" class="wrapper">
-
+    <div id="message" class="wrapper hidden">
+      <div id="message-head">
+      </div>
+      <div id="message-body">
+      </div>
+      <div id="message-tail" class="message-tail">
+        <button id = "btn-auto-reload" onclick="stopAutoReload()">自動再読込停止</button>
+      </div>
     </div>
     <!--
     <input type="file">
@@ -85,7 +91,9 @@
       let facilitiyClass = ""; // 初期値：名称の列を隠さない（class="hidden"を付加しない）
       let isAutoReload = true;
       let intervalMillisecond = 10 * 60 * 1000; // 初期値：読み込み間隔10分（600,000ミリ秒）
-      intervalMillisecond = 2000; // 2秒：デデバッグ用
+      intervalMillisecond = 2000; // 2秒：デバッグ用
+      let reloadCtl;
+      window.onload = init;
       const facilities =
         [
           {id:  2, groupId: 1, name: "５Ｆ役員会議室"},
@@ -116,19 +124,36 @@
           {id: 29, groupId: 3, name: "Ｗｅｂ会議用セット"},
           {id: 43, groupId: 3, name: "スマートアバター"},
         ];
-      window.onload = init();
       function init() {
         getParam();
         loopTask();
       }
       function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise(resolve => {
+          const timer = setTimeout(() => resolve({status: true}), ms);
+          reloadCtl.signal.addEventListener(
+            "abort",
+             () => {
+              clearTimeout(timer);
+              resolve({status: false});
+            },
+            {once: true}
+          );
+        });
       }
       async function loopTask() {
-        while(isAutoReload) {
+        reloadCtl = new AbortController();
+        // let count = 0;
+        while(true) {
+          // count++;
+          // console.log(`${count}回目を実行`)
           download();
-          await sleep(intervalMillisecond);
+          const res = await sleep(intervalMillisecond);
+          if (res.status === false) {
+            break;
+          }
         }
+        // console.log("自動再読込を停止しました");
         alert("自動再読込を停止しました");
       }
       function getParam() {
@@ -163,12 +188,12 @@
           const target = new Date(r2data.Target); 
           const reserves = r2data.PostReserves;
           formatDate(target)
-          let tHead = `<h3 class="tagetDate">${formatDate(target)}</h3>`;
+          let head = `<h3 class="tagetDate">${formatDate(target)}</h3>`;
           if (facilitiyId !== null) {
-            tHead += `<h1 class="facilitiyName">${getfacilitiyName(facilitiyId)}</h1>`;
+            head += `<h1 class="facilitiyName">${getfacilitiyName(facilitiyId)}</h1>`;
           }
-          tHead += `<table><tr><th ${facilitiyClass}">名称</th><th>時間</th><th>部署名</th><th>予約者</th><th>予約内容</th></tr>`;
-          let tBody = "";
+          let body = `<table><tr><th ${facilitiyClass}">名称</th><th>時間</th><th>部署名</th><th>予約者</th><th>予約内容</th></tr>`
+          // let body = "";
           for (var reserve of reserves) {
             if (facilitiyId !== null) {
               if (facilitiyId !== reserve.FacilitiesId) {
@@ -177,7 +202,7 @@
             }
             reserve.ReserveStartTime = new Date(reserve.ReserveStartTime);
             reserve.ReserveEndTime = new Date(reserve.ReserveEndTime);
-            tBody +=
+            body +=
               `<tr>` +
               `<td ${facilitiyClass}>${getfacilitiyName(reserve.FacilitiesId)}</td>` +
               `<td>${formatTime(reserve.ReserveStartTime)} ～` +
@@ -187,10 +212,10 @@
               `<td>${reserve.ReserveDetail}</td>` +
               `</tr>`;
           }
-          tBody += `</table><div class="stopBtn"><button onclick="stopAutoReload()">自動再読込停止</button></div>`;
-          const display = document.getElementById("message");
-          display.innerHTML = tHead + tBody;
-          // console.log(tHead + tBody);
+          body += `</table>`;
+          document.getElementById("message-head").innerHTML = head;
+          document.getElementById("message-body").innerHTML = body;
+          document.getElementById("message").classList.remove("hidden");
         } else {
           const status = res.status;
           const text = await res.text();
@@ -206,7 +231,20 @@
         return "";
       }
       function stopAutoReload() {
+        // console.log("stopAutoReload()");
         isAutoReload = false;
+        const btn = document.getElementById("btn-auto-reload");
+        btn.textContent = "自動再読込開始";
+        btn.onclick = restartAutoReload;
+        reloadCtl.abort();
+      }
+      function restartAutoReload() {
+        // console.log("restartAutoReload()");
+        isAutoReload = true;
+        const btn = document.getElementById("btn-auto-reload");
+        btn.textContent = "自動再読込停止";
+        btn.onclick = stopAutoReload;
+        loopTask();
       }
       function formatDate(dt) {
         const days = ['（日）', '（月）', '（火）', '（水）', '（木）', '（金）', '（土）'];
